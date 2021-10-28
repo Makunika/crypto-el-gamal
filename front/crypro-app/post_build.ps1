@@ -1,0 +1,1 @@
+Copy-Item "./build/*" -Destination "C:/Users/pshbl/IdeaProjects/video-hosting/src/main/resources/templates" -Recurse -force
