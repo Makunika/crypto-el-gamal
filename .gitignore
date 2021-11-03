@@ -1,1 +1,6 @@
 /.idea/
+/.mvn/
+library/
+*.iml
+node_modules/
+/front/crypto-app/dist/
