@@ -1,7 +1,8 @@
-import {Button, Col, Container, Row} from "react-bootstrap";
+import {Button, Col, Container, Form, Row, Tab, Tabs} from "react-bootstrap";
 import React, {useState, useRef} from 'react';
 import SockJsClient from 'react-stomp';
 import axios from "axios";
+import bigInt from "big-integer";
 
 const usernames = ['Maxim1', 'Maxim2'];
 
@@ -9,11 +10,11 @@ const usernames = ['Maxim1', 'Maxim2'];
 function generateNewKey() {
     const p = generateRandomPrime();
     console.log(`[GENERATE KEY] p = ${p}`)
-    const g = getPRoot(p);
+    const g = bigInt(getPRoot(p));
     console.log(`[GENERATE KEY] g = ${g}`)
-    const x = randomInteger(2, p);
+    const x = bigInt.randBetween(2, p - 1);
     console.log(`[GENERATE KEY] x = ${x}`)
-    const y = Math.pow(g, x) % p;
+    const y = g.modPow(x, p);
     console.log(`[GENERATE KEY] y = ${y}`)
 
     return {
@@ -26,36 +27,28 @@ function generateNewKey() {
 
 function encryptMsg(msg, openKey) {
     if (msg > openKey.p) {
-        throw new Error("сообщение должно быть больше p")
+        throw new Error("сообщение должно быть меньше p")
     }
-    console.log(`[Encrypt] Encrypt ${msg}, open-key ${openKey}`);
-    const sessionKey = randomInteger(2, openKey.p - 1);
-    const a = Math.pow(openKey.g, sessionKey) % openKey.p;
-    const b = (Math.pow(openKey.y, sessionKey) * msg) % openKey.p;
+    console.log(`[Encrypt] Encrypt ${msg}, open-key ${openKey.toString()}`);
+    const sessionKey = bigInt.randBetween(2, openKey.p - 2);
+    const a = openKey.g.modPow(sessionKey, openKey.p);
+    const b = bigInt(msg).multiply(openKey.y.modPow(sessionKey, openKey.p)).mod(openKey.p);
     console.log(`[Encrypt] Result encrypt a = ${a}, b = ${b}, sum = ${a * 10 + b}`);
-    return a * 10 + b;
+    return `${a}|${b}`;
 }
 
 function decryptMsg(msg, secretKey) {
-    let a = msg / 10;
-    let b = msg % 10;
-    console.log(`[Decrypt] Decrypt a = ${a}, b = ${b}. key ${secretKey}`);
-    const result = b * Math.pow(Math.pow(a, secretKey.x), -1) % secretKey.p;
+    const [aStr, bStr] = msg.split(/\|/);
+    const a = bigInt(parseInt(aStr));
+    const b = bigInt(parseInt(bStr));
+    console.log(`[Decrypt] Decrypt a = ${a}, b = ${b}. key ${secretKey.toString()}`);
+    const result = b.multiply(a.pow(secretKey.p.minus(1).minus(secretKey.x))).mod(secretKey.p)
     console.log(`[Decrypt] Decrypt result = ${result}`);
     return result;
 }
 
-function isPrime(p) {
-    for (let i = 2; i < Math.sqrt(p); i++) {
-        if (p % i !== 0) {
-            return false
-        }
-    }
-    return true
-}
-
 function getPRoot(p) {
-    for (let i = 2; i < p; i++) {
+    for (let i = 0; i < p; i++) {
         if (isPRoot(p, i)) {
             console.log("root = " + i)
             return i;
@@ -82,36 +75,30 @@ function isPRoot(p, root) {
 
 function generateRandomPrime() {
     while (true) {
-        let random = randomInteger(12, 100000);
-        if (isPrime(random)) {
+        let random = bigInt.randBetween(10, 100);
+        if (random.isPrime()) {
             return random;
         }
     }
-}
-
-function randomInteger(min, max) {
-    let rand = min + Math.random() * (max + 1 - min);
-    return Math.floor(rand);
 }
 
 function App() {
     const [username, setUsername] = useState(usernames[0]);
     const [usernameTo, setUsernameTo] = useState(usernames[1]);
     const [message, setMessage] = useState('');
-    const [myKey, setMyKey] = useState(generateNewKey())
+    const [inMessage, setInMessage] = useState('');
+    const [inDecryptMessage, setInDecryptMessage] = useState('');
+    const [myKey, setMyKey] = useState({})
     const [isConnected, setIsConnected] = useState(false)
-    const [openKey, setOpenKey] = useState({
-        p: 0,
-        g: 0,
-        y: 0,
-    })
+    const [openKey, setOpenKey] = useState({})
     const clientRef = useRef();
 
     const handleChangeMsg = (msg) => {
-        setMessage(encryptMsg(msg, myKey))
+        setMessage(encryptMsg(msg.target.value, openKey))
     }
 
-    const handleSend = () => {
+    const handleSend = (event) => {
+        console.log(event)
         const msg = {
             username: usernameTo,
             message: message
@@ -119,16 +106,22 @@ function App() {
         clientRef.current.sendMessage("/app/chat", JSON.stringify(msg));
     }
 
+    const handleShow = () => {
+        console.log(openKey)
+        console.log(myKey)
+    }
+
     const handleCreateChat = () => {
-        setMyKey(generateNewKey());
+        let newSecretKey = generateNewKey();
+
         const sendMsg = {
             usernameTo: usernameTo,
             usernameFrom: username,
-            p: myKey.p,
-            g: myKey.g,
-            y: myKey.y,
+            p: newSecretKey.p,
+            g: newSecretKey.g,
+            y: newSecretKey.y,
         }
-        axios.post("http://localhost:8080/api/create-chat", sendMsg).then(r => console.log(r))
+        axios.post("http://localhost:8080/api/create-chat", sendMsg).then(r => setMyKey(newSecretKey))
     }
 
     const handleChangeUsername = () => {
@@ -143,31 +136,34 @@ function App() {
                           onMessage={(msg) => {
                               console.log(msg)
                               console.log("chat")
-                              console.log(decryptMsg(msg.message, openKey))
+                              const decryptMsg1 = decryptMsg(msg.message, myKey);
+                              console.log(decryptMsg1)
+                              setInMessage(msg.message)
+                              setInDecryptMessage(decryptMsg1.toString())
                           }}
                           ref={clientRef} />
             <SockJsClient url='http://localhost:8080/ws' topics={['/user/' + username + '/create' ]}
                           onMessage={(msg) => {
                               console.log("create chat")
                               console.log(msg)
-                              setMyKey(generateNewKey());
+                              let newSecretKey = generateNewKey();
                               const sendMsg = {
                                   usernameTo: msg.usernameTo,
                                   usernameFrom: msg.usernameFrom,
-                                  p: myKey.p,
-                                  g: myKey.g,
-                                  y: myKey.y,
+                                  p: newSecretKey.p,
+                                  g: newSecretKey.g,
+                                  y: newSecretKey.y,
                               }
                               console.log(sendMsg)
                               axios.post("http://localhost:8080/api/create-chat/key", sendMsg
                               ).then(r => {
-                                  console.log(r)
+                                  setMyKey(newSecretKey);
                               });
 
                               setOpenKey({
-                                  p: msg.p,
-                                  g: msg.g,
-                                  y: msg.y,
+                                  p: bigInt(msg.p),
+                                  g: bigInt(msg.g),
+                                  y: bigInt(msg.y),
                               });
                           }} />
             <SockJsClient url='http://localhost:8080/ws' topics={['/user/' + username + '/key' ]}
@@ -175,19 +171,20 @@ function App() {
                               console.log("key")
                               console.log(msg);
                               setOpenKey({
-                                  p: msg.p,
-                                  g: msg.g,
-                                  y: msg.y,
+                                  p: bigInt(msg.p),
+                                  g: bigInt(msg.g),
+                                  y: bigInt(msg.y),
                               });
                           }} />
             <Container fluid="md" className="my-5">
-                <Row className="mb-2">
+                <Row className="mb-5">
                     <Col>
                         <div>
                             Hello, {username}
                         </div>
                         <Button
-                            variant="primary"
+                            variant="outline-primary"
+                            size="sm"
                             onClick={handleChangeUsername}
                             disabled={isConnected}
                         >
@@ -195,20 +192,73 @@ function App() {
                         </Button>
                     </Col>
                 </Row>
-                <Row className="mb-2">
+                <Row className="mb-2 bg-light border p-3" xs="auto">
                     <Col>
-                        <Button
-                            variant="primary"
-                            onClick={handleCreateChat}
-                        >
-                            Соединить
-                        </Button>
+                        <div className="mb-2 fw-bold">Секретный (x) и открытый ключ (p, g, y) (мой)</div>
+                        <Row xs="auto"><Col>x</Col><Col>{myKey.x?.toString()}</Col></Row>
+                        <Row xs="auto"><Col>p</Col><Col>{myKey.p?.toString()}</Col></Row>
+                        <Row xs="auto"><Col>g</Col><Col>{myKey.g?.toString()}</Col></Row>
+                        <Row xs="auto"><Col>y</Col><Col>{myKey.y?.toString()}</Col></Row>
+                    </Col>
+                    <Col>
+                        <div className="mb-2 fw-bold">Открытый ключ (p, g, y) (чужой)</div>
+                        <Row xs="auto"><Col>p</Col><Col>{openKey.p?.toString()}</Col></Row>
+                        <Row xs="auto"><Col>g</Col><Col>{openKey.g?.toString()}</Col></Row>
+                        <Row xs="auto"><Col>y</Col><Col>{openKey.y?.toString()}</Col></Row>
                     </Col>
                 </Row>
                 <Row className="mb-2">
-                    <Col>
-                        Hello
-                    </Col>
+                    <Button
+                        variant="primary"
+                        onClick={handleCreateChat}
+                    >
+                        Соединить
+                    </Button>
+                </Row>
+                <Row className="mb-2">
+                    <Tabs defaultActiveKey="send" className="mb-3">
+                        <Tab eventKey="send" title="Отправить">
+                            <Form>
+                                <Form.Group as={Row} className="mb-3" controlId="formHorizontalCheck">
+                                    <Col>
+                                        <Form.Control onChange={handleChangeMsg} type="number"  placeholder="Сообщение" />
+                                    </Col>
+                                </Form.Group>
+                                <Form.Group as={Row} className="mb-3">
+                                    <Col sm={10}>
+                                        <Button type="button" onClick={handleSend}>Отправить</Button>
+                                    </Col>
+                                </Form.Group>
+                            </Form>
+                            <hr />
+                            <Form.Group as={Row} className="mb-3" controlId="formHorizontalCheck">
+                                <Form.Label column sm="2">
+                                    Результат шифрования с помощью чужого открытого ключа
+                                </Form.Label>
+                                <Col sm="10">
+                                    <Form.Control type="text" placeholder="Результат шифрования" readOnly value={message}/>
+                                </Col>
+                            </Form.Group>
+                        </Tab>
+                        <Tab eventKey="exit" title="Входящие">
+                            <Form.Group as={Row} className="mb-2" controlId="formHorizontalCheck">
+                                <Form.Label column sm="2">
+                                    Пришло сообщение
+                                </Form.Label>
+                                <Col sm="10">
+                                    <Form.Control type="text" readOnly value={inMessage}/>
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row} className="mb-2" controlId="formHorizontalCheck">
+                                <Form.Label column sm="2">
+                                    Расшифрованное сообщение при помощи моего секретного ключа
+                                </Form.Label>
+                                <Col sm="10">
+                                    <Form.Control type="text" readOnly value={inDecryptMessage}/>
+                                </Col>
+                            </Form.Group>
+                        </Tab>
+                    </Tabs>
                 </Row>
             </Container>
         </div>
