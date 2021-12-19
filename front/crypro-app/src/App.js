@@ -10,12 +10,14 @@ const usernames = ['Maxim1', 'Maxim2'];
 function generateNewKey() {
     const p = generateRandomPrime();
     console.log(`[GENERATE KEY] p = ${p}`)
-    const g = bigInt(getPRoot(p));
+    const g = bigInt.randBetween(2, p.subtract(1))//bigInt(getPRoot(p));
     console.log(`[GENERATE KEY] g = ${g}`)
-    const x = bigInt.randBetween(2, p - 1);
+    const x = bigInt.randBetween(2, p.subtract(1));
     console.log(`[GENERATE KEY] x = ${x}`)
     const y = g.modPow(x, p);
     console.log(`[GENERATE KEY] y = ${y}`)
+
+    const result = {p, g, x, y};
 
     return {
         p,
@@ -26,29 +28,80 @@ function generateNewKey() {
 }
 
 function encryptMsg(msg, openKey) {
-    if (msg > openKey.p) {
-        throw new Error("сообщение должно быть меньше p")
-    }
     console.log(`[Encrypt] Encrypt ${msg}, open-key ${openKey.toString()}`);
+
+    let a = "";
+    let b = "";
+
+    for (let i = 0; i < msg.length; i++) {
+        let encryptNum = encryptNumber(msg.charCodeAt(i), openKey);
+        a += toStringBigInteger(encryptNum.a) + ",";
+        b += toStringBigInteger(encryptNum.b) + ",";
+    }
+
+    console.log(`[Encrypt] Result encrypt a = ${a}, b = ${b}`);
+    return {
+        allMessage: a + "!" + b,
+        a: a,
+        b: b
+    };
+}
+
+function encryptNumber(msg, openKey) {
+    console.log(`[Encrypt] Encrypt number ${msg}, open-key ${openKey.toString()}`);
     const sessionKey = bigInt.randBetween(2, openKey.p - 2);
     const a = openKey.g.modPow(sessionKey, openKey.p);
     const b = bigInt(msg).multiply(openKey.y.modPow(sessionKey, openKey.p)).mod(openKey.p);
-    console.log(`[Encrypt] Result encrypt a = ${a}, b = ${b}, sum = ${a * 10 + b}`);
-    return `${a}|${b}`;
+    console.log(`[Encrypt] Result encrypt a = ${a.toString()}, b = ${b.toString()}`);
+
+    return {
+        a,
+        b
+    };
+}
+
+function toBigInt(str) {
+    const array = Array.from(str, (char) => char.charCodeAt(0) - 48);
+    return bigInt.fromArray(array, 74);
 }
 
 function decryptMsg(msg, secretKey) {
-    const [aStr, bStr] = msg.split(/\|/);
-    const a = bigInt(parseInt(aStr));
-    const b = bigInt(parseInt(bStr));
+    const [aStr, bStr] = msg.split(/!/);
+    console.log(`[Decrypt] Decrypt a = ${aStr}, b = ${bStr}. key ${secretKey.toString()}`);
+
+    let result = "";
+    const aLetters = aStr.split(/,/);
+    const bLetters = bStr.split(/,/);
+
+    for (let i = 0; i < aLetters.length - 1; i++) {
+        let resultNum = decryptNumber(toBigInt(aLetters[i]), toBigInt(bLetters[i]), secretKey);
+        result += String.fromCharCode(resultNum.toJSNumber());
+    }
+
+    console.log(`[Decrypt] Decrypt result = ${result}`);
+    return result;
+}
+
+function decryptNumber(aCode, bCode, secretKey) {
+    const a = bigInt(aCode);
+    const b = bigInt(bCode);
     console.log(`[Decrypt] Decrypt a = ${a}, b = ${b}. key ${secretKey.toString()}`);
     const result = b.multiply(a.pow(secretKey.p.minus(1).minus(secretKey.x))).mod(secretKey.p)
     console.log(`[Decrypt] Decrypt result = ${result}`);
     return result;
 }
 
+function toStringBigInteger(number) {
+    const values = number.toArray(74);
+    let result = "";
+    for (let i = 0; i < values.value.length; i++) {
+        result += String.fromCharCode(values.value[i] + 48);
+    }
+    return result;
+}
+
 function getPRoot(p) {
-    for (let i = 0; i < p; i++) {
+    for (let i = bigInt(0); i.lesser(p); i.next()) {
         if (isPRoot(p, i)) {
             console.log("root = " + i)
             return i;
@@ -58,13 +111,13 @@ function getPRoot(p) {
 }
 
 function isPRoot(p, root) {
-    if (root === 0 || root === 1) {
+    if (root.isZero() || root.eq(bigInt.one)) {
         return false;
     }
-    let last = 1;
+    let last = bigInt.one;
     const set = new Set();
-    for (let i = 0; i < p - 1; i++) {
-        last = (last * root) % p;
+    for (let i = bigInt(0); i.lesser(p.subtract(1)); i++) {
+        last = last.multiply(root).mod(p);
         if (set.has(last)) {
             return false;
         }
@@ -75,7 +128,7 @@ function isPRoot(p, root) {
 
 function generateRandomPrime() {
     while (true) {
-        let random = bigInt.randBetween(10, 100);
+        let random = bigInt.randBetween("65536", "8388607");
         if (random.isPrime()) {
             return random;
         }
@@ -86,6 +139,8 @@ function App() {
     const [username, setUsername] = useState(usernames[0]);
     const [usernameTo, setUsernameTo] = useState(usernames[1]);
     const [message, setMessage] = useState('');
+    const [messageA, setMessageA] = useState('');
+    const [messageB, setMessageB] = useState('');
     const [inMessage, setInMessage] = useState('');
     const [inDecryptMessage, setInDecryptMessage] = useState('');
     const [myKey, setMyKey] = useState({})
@@ -94,7 +149,10 @@ function App() {
     const clientRef = useRef();
 
     const handleChangeMsg = (msg) => {
-        setMessage(encryptMsg(msg.target.value, openKey))
+        let result = encryptMsg(msg.target.value, openKey);
+        setMessage(result.allMessage);
+        setMessageA(result.a);
+        setMessageB(result.b);
     }
 
     const handleSend = (event) => {
@@ -221,7 +279,7 @@ function App() {
                             <Form>
                                 <Form.Group as={Row} className="mb-3" controlId="formHorizontalCheck">
                                     <Col>
-                                        <Form.Control onChange={handleChangeMsg} type="number"  placeholder="Сообщение" />
+                                        <Form.Control onChange={handleChangeMsg} type="text"  placeholder="Сообщение" />
                                     </Col>
                                 </Form.Group>
                                 <Form.Group as={Row} className="mb-3">
@@ -233,10 +291,18 @@ function App() {
                             <hr />
                             <Form.Group as={Row} className="mb-3" controlId="formHorizontalCheck">
                                 <Form.Label column sm="2">
-                                    Результат шифрования с помощью чужого открытого ключа
+                                    Результат шифрования с помощью чужого открытого ключа (a)
                                 </Form.Label>
                                 <Col sm="10">
-                                    <Form.Control type="text" placeholder="Результат шифрования" readOnly value={message}/>
+                                    <Form.Control type="text" placeholder="Результат шифрования (a)" readOnly value={messageA}/>
+                                </Col>
+                            </Form.Group>
+                            <Form.Group as={Row} className="mb-3" controlId="formHorizontalCheck">
+                                <Form.Label column sm="2">
+                                    Результат шифрования с помощью чужого открытого ключа (b)
+                                </Form.Label>
+                                <Col sm="10">
+                                    <Form.Control type="text" placeholder="Результат шифрования (b)" readOnly value={messageB}/>
                                 </Col>
                             </Form.Group>
                         </Tab>
