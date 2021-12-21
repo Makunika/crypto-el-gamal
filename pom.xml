@@ -13,6 +13,7 @@
 
     <modules>
         <module>simple-server</module>
+        <module>tornado-crypto-el-gamal</module>
     </modules>
 
     <groupId>ru.pshiblo</groupId>
