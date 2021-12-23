@@ -1,21 +1,20 @@
-package ru.pshiblo.elgamal.core.crypto.impl;
+package ru.pshiblo.elgamal.core.crypto.service.impl;
 
-import ru.pshiblo.elgamal.core.crypto.Decryptor;
+import ru.pshiblo.elgamal.core.crypto.service.DecryptorService;
 import ru.pshiblo.elgamal.core.crypto.key.SecretKey;
+import ru.pshiblo.elgamal.core.crypto.service.GamalCryptoResult;
 import ru.pshiblo.elgamal.core.utils.MathUtils;
 import ru.pshiblo.elgamal.core.utils.Utils;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 
-import static ru.pshiblo.elgamal.core.crypto.impl.CryptorImpl.MIN_BLOCK;
+import static ru.pshiblo.elgamal.core.crypto.service.impl.CryptorServiceImpl.MIN_BLOCK;
 
 /**
  * @author Maxim Pshiblo
  */
-public class DecryptorImpl implements Decryptor {
-
-    private SecretKey secretKey;
+public class DecryptorServiceImpl implements DecryptorService {
 
     @Override
     public String decryption(GamalCryptoResult result, SecretKey secretKey) {

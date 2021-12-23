@@ -16,11 +16,17 @@ import java.util.stream.Collectors;
  */
 public class BigKey {
     private byte[] bytes;
-    private int bitsSize;
-    private int byteSize;
+    private final int bitsSize;
+    private final int byteSize;
 
     public BigKey(BigInteger bigInteger) {
         bytes = bigInteger.toByteArray();
+        bitsSize = bigInteger.bitLength();
+        byteSize = bitsSize / 8;
+    }
+
+    public BigKey(String radix16) {
+        this(new BigInteger(radix16, 16));
     }
 
     public BigKey(int bitsCount, boolean isPrime) {
@@ -30,7 +36,11 @@ public class BigKey {
         Random rnd = new Random();
         if (isPrime) {
             BigInteger number;
+            long l1 = 0;
+            long l2 = 0;
             do {
+                l1 = System.currentTimeMillis();
+                //System.out.println("finded probable time + " + (l1 - l2));
                 rnd.nextBytes(bytes);
                 if (bytes[bytes.length - 1] % 2 == 0) {
                     bytes[bytes.length - 1] = (byte)((int) bytes[bytes.length - 1] + 1);
@@ -40,7 +50,8 @@ public class BigKey {
                 }
                 //bytes[0] = (byte) ((int) bytes[0] | 1 << 8);
                 number = new BigInteger(bytes).abs();
-            } while (!MathUtils.isProbablyPrime(number, 100));
+                l2 = System.currentTimeMillis();
+            } while (!MathUtils.isProbablyPrime(number, bitsCount + 1));
             bytes = number.toByteArray();
         } else {
             rnd.nextBytes(bytes);

@@ -1,7 +1,8 @@
-package ru.pshiblo.elgamal.core.crypto.impl;
+package ru.pshiblo.elgamal.core.crypto.service.impl;
 
-import ru.pshiblo.elgamal.core.crypto.Cryptor;
+import ru.pshiblo.elgamal.core.crypto.service.CryptorService;
 import ru.pshiblo.elgamal.core.crypto.key.OpenKey;
+import ru.pshiblo.elgamal.core.crypto.service.GamalCryptoResult;
 import ru.pshiblo.elgamal.core.utils.MathUtils;
 import ru.pshiblo.elgamal.core.utils.Utils;
 
@@ -13,7 +14,7 @@ import java.util.List;
 /**
  * @author Maxim Pshiblo
  */
-public class CryptorImpl implements Cryptor {
+public class CryptorServiceImpl implements CryptorService {
 
     public static int MIN_BLOCK = 2;
 
@@ -23,7 +24,7 @@ public class CryptorImpl implements Cryptor {
             throw new IllegalArgumentException("openKey is null");
         }
         if (byteBlock >= openKey.getP().getByteSize()) {
-            throw new IllegalArgumentException("byteBlock > p byteSize");
+            throw new IllegalArgumentException("byteBlock (" + byteBlock + ") > p byteSize (" + openKey.getP().getByteSize() + ")");
         }
 
         int[] chars = str.chars().toArray();

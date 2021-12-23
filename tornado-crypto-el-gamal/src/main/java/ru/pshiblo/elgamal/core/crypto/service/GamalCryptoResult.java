@@ -1,4 +1,4 @@
-package ru.pshiblo.elgamal.core.crypto.impl;
+package ru.pshiblo.elgamal.core.crypto.service;
 
 /**
  * @author Maxim Pshiblo

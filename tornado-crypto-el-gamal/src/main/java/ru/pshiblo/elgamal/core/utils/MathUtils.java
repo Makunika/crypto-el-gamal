@@ -14,15 +14,108 @@ import java.util.Random;
 public class MathUtils {
 
     /**
-     * Тест Ферма
+     * тест Миллера — Рабина на простоту числа
+     * производится k раундов проверки числа number на простоту
      */
     public static boolean isProbablyPrime(BigInteger number, int k) {
         if (number.compareTo(BigInteger.ZERO) < 0) {
-            throw new IllegalArgumentException("!!!!");
+            throw new IllegalArgumentException("");
         }
         if (number.compareTo(BigInteger.TWO) == 0) {
             return true;
         }
+
+        if (number.mod(BigInteger.valueOf(2)).compareTo(BigInteger.ZERO) == 0) {
+            return false;
+        }
+        if (number.mod(BigInteger.valueOf(3)).compareTo(BigInteger.ZERO) == 0) {
+            return false;
+        }
+        if (number.mod(BigInteger.valueOf(5)).compareTo(BigInteger.ZERO) == 0) {
+            return false;
+        }
+        if (number.mod(BigInteger.valueOf(7)).compareTo(BigInteger.ZERO) == 0) {
+            return false;
+        }
+        if (number.mod(BigInteger.valueOf(11)).compareTo(BigInteger.ZERO) == 0) {
+            return false;
+        }
+
+        BigInteger t = number.subtract(BigInteger.ONE);
+
+        int s = 0;
+
+        while (t.and(BigInteger.ONE).compareTo(BigInteger.ZERO) == 0) {
+            t = t.shiftRight(1);
+            s++;
+        }
+
+        for (int i = 0; i < k; i++) {
+            BigInteger a = randBetween(BigInteger.TWO, number.subtract(BigInteger.TWO));
+            BigInteger x = modPow(a, t, number);
+
+            if (x.compareTo(BigInteger.ONE) == 0 || x.compareTo(number.subtract(BigInteger.ONE)) == 0) {
+                continue;
+            }
+
+            for (int j = 0; j < s - 1; j++) {
+                x = modPow(x, BigInteger.TWO, number);
+
+                if (x.compareTo(BigInteger.ONE) == 0) {
+                    return false;
+                }
+
+                if (x.compareTo(number.subtract(BigInteger.ONE)) == 0) {
+                    break;
+                }
+            }
+            if (x.compareTo(number.subtract(BigInteger.ONE)) != 0) {
+                return false;
+            }
+        }
+
+
+//        for (int i = 0; i < k; i++) {
+//            BigInteger a = randBetween(BigInteger.TWO, number.subtract(BigInteger.TWO));
+//            if (gcd(a, number).compareTo(BigInteger.ONE) != 0) {
+//                return false;
+//            }
+//            if (modPow(a, number.subtract(BigInteger.ONE), number).compareTo(BigInteger.ONE) != 0) {
+//                return false;
+//            }
+//        }
+        return true;
+    }
+
+    /**
+     * тест Миллера — Рабина на простоту числа
+     * производится k раундов проверки числа number на простоту
+     */
+    public static boolean isProbablyPrimeFerma(BigInteger number, int k) {
+        if (number.compareTo(BigInteger.ZERO) < 0) {
+            throw new IllegalArgumentException("");
+        }
+        if (number.compareTo(BigInteger.TWO) == 0) {
+            return true;
+        }
+
+        if (number.mod(BigInteger.valueOf(2)).compareTo(BigInteger.ZERO) == 0) {
+            return false;
+        }
+        if (number.mod(BigInteger.valueOf(3)).compareTo(BigInteger.ZERO) == 0) {
+            return false;
+        }
+        if (number.mod(BigInteger.valueOf(5)).compareTo(BigInteger.ZERO) == 0) {
+            return false;
+        }
+        if (number.mod(BigInteger.valueOf(7)).compareTo(BigInteger.ZERO) == 0) {
+            return false;
+        }
+        if (number.mod(BigInteger.valueOf(11)).compareTo(BigInteger.ZERO) == 0) {
+            return false;
+        }
+
+
         for (int i = 0; i < k; i++) {
             BigInteger a = randBetween(BigInteger.TWO, number.subtract(BigInteger.TWO));
             if (gcd(a, number).compareTo(BigInteger.ONE) != 0) {
@@ -53,7 +146,7 @@ public class MathUtils {
     }
 
     /**
-     * Схема "Справа налево" или бинарное умножение по модулю
+     * бинарное возведение в степень по модулю
      */
     public static BigInteger modPow(final BigInteger base, final BigInteger exp, final BigInteger m) {
         BigInteger c = BigInteger.ONE;
@@ -73,7 +166,7 @@ public class MathUtils {
         List<BigInteger> queue = new ArrayList<>();
         BigInteger phi = p.subtract(BigInteger.ONE);
         BigInteger n = new BigInteger(phi.toByteArray());
-        for (BigInteger i = BigInteger.TWO; i.multiply(i).compareTo(n) >= 0; i = i.add(BigInteger.ONE)) {
+        for (BigInteger i = BigInteger.TWO; i.multiply(i).compareTo(n) <= 0; i = i.add(BigInteger.ONE)) {
             if (n.mod(i).compareTo(BigInteger.ZERO) == 0) {
                 queue.add(i);
                 while (n.mod(i).compareTo(BigInteger.ZERO) == 0) {
@@ -87,7 +180,7 @@ public class MathUtils {
         for (BigInteger res = BigInteger.TWO; res.compareTo(p) <= 0; res = res.add(BigInteger.ONE)) {
             boolean ok = true;
             for (int i = 0; i < queue.size() && ok; i++) {
-                ok = modPow(res, phi.divide(queue.get(i)), p).compareTo(BigInteger.ONE) != 0;
+                ok = ok & modPow(res, phi.divide(queue.get(i)), p).compareTo(BigInteger.ONE) != 0;
             }
             if (ok) return res;
         }
@@ -103,10 +196,13 @@ public class MathUtils {
         return result;
     }
 
-    public static BigInteger randBetween(BigInteger num1, BigInteger num2) {
+    public static BigInteger randBetween(BigInteger min, BigInteger max) {
         Random rnd = new Random();
-        BigInteger result = new BigInteger(Math.max(num1.bitLength(), num2.bitLength()), rnd);
-        result = result.mod(num2).add(num1);
+        BigInteger result = new BigInteger(Math.max(min.bitLength(), max.bitLength()), rnd);
+        result = result.mod(max.subtract(min).add(BigInteger.ONE)).add(min);
+//        System.out.println("a = " + result.toString());
+//        System.out.println("min = " + min.toString());
+//        System.out.println("max = " + max.toString());
         return result;
     }
 }
