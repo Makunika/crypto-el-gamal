@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.pshiblo.crypto.web.dto.CreateChatDto;
 import ru.pshiblo.crypto.web.dto.OpenKeyDto;
 
+import java.math.BigInteger;
+
 /**
  * @author Maxim Pshiblo
  */
@@ -24,6 +26,7 @@ public class CreateChatController {
     @PostMapping
     public void createChat(@RequestBody CreateChatDto createChatDto) {
         log.info("post createChat: {}", createChatDto);
+        new BigInteger().modPow()
         messagingTemplate.convertAndSendToUser(createChatDto.getUsernameTo(),"/create", createChatDto);
     }
 

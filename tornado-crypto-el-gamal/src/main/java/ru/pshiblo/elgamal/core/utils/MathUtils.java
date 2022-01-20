@@ -74,21 +74,11 @@ public class MathUtils {
             }
         }
 
-
-//        for (int i = 0; i < k; i++) {
-//            BigInteger a = randBetween(BigInteger.TWO, number.subtract(BigInteger.TWO));
-//            if (gcd(a, number).compareTo(BigInteger.ONE) != 0) {
-//                return false;
-//            }
-//            if (modPow(a, number.subtract(BigInteger.ONE), number).compareTo(BigInteger.ONE) != 0) {
-//                return false;
-//            }
-//        }
         return true;
     }
 
     /**
-     * тест Миллера — Рабина на простоту числа
+     * тест Ферма
      * производится k раундов проверки числа number на простоту
      */
     public static boolean isProbablyPrimeFerma(BigInteger number, int k) {
@@ -166,6 +156,7 @@ public class MathUtils {
         List<BigInteger> queue = new ArrayList<>();
         BigInteger phi = p.subtract(BigInteger.ONE);
         BigInteger n = new BigInteger(phi.toByteArray());
+        // Факторизация phi(n)
         for (BigInteger i = BigInteger.TWO; i.multiply(i).compareTo(n) <= 0; i = i.add(BigInteger.ONE)) {
             if (n.mod(i).compareTo(BigInteger.ZERO) == 0) {
                 queue.add(i);
@@ -180,7 +171,7 @@ public class MathUtils {
         for (BigInteger res = BigInteger.TWO; res.compareTo(p) <= 0; res = res.add(BigInteger.ONE)) {
             boolean ok = true;
             for (int i = 0; i < queue.size() && ok; i++) {
-                ok = ok & modPow(res, phi.divide(queue.get(i)), p).compareTo(BigInteger.ONE) != 0;
+                ok = modPow(res, phi.divide(queue.get(i)), p).compareTo(BigInteger.ONE) != 0;
             }
             if (ok) return res;
         }
@@ -197,6 +188,9 @@ public class MathUtils {
     }
 
     public static BigInteger randBetween(BigInteger min, BigInteger max) {
+        if (min.compareTo(max) >= 0) {
+            throw new IllegalArgumentException();
+        }
         Random rnd = new Random();
         BigInteger result = new BigInteger(Math.max(min.bitLength(), max.bitLength()), rnd);
         result = result.mod(max.subtract(min).add(BigInteger.ONE)).add(min);

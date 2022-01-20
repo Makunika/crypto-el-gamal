@@ -16,7 +16,8 @@ public class GeneratorKey {
         System.out.println("Generate p start");
         BigKey p = new BigKey(bitsCount, true);
         System.out.println("Generate g start");
-        BigKey g = new BigKey(MathUtils.getPRoot(p.toBigInteger()));
+        //BigKey g = new BigKey(MathUtils.getPRoot(p.toBigInteger()));
+        BigKey g = new BigKey(MathUtils.randBetween(BigInteger.TWO, p.toBigInteger().subtract(BigInteger.ONE)));
         System.out.println("Generate x start");
         BigKey x = new BigKey(MathUtils.randBetween(BigInteger.TWO, p.toBigInteger().subtract(BigInteger.ONE)));
         System.out.println("Generate y start");
