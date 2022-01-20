@@ -22,7 +22,7 @@ public class BigKey {
     public BigKey(BigInteger bigInteger) {
         bytes = bigInteger.toByteArray();
         bitsSize = bigInteger.bitLength();
-        byteSize = bitsSize / 8;
+        byteSize = bitsSize / 8 == 0 ? 1 : bitsSize / 8;
     }
 
     public BigKey(String radix16) {
@@ -36,11 +36,7 @@ public class BigKey {
         Random rnd = new Random();
         if (isPrime) {
             BigInteger number;
-            long l1 = 0;
-            long l2 = 0;
             do {
-                l1 = System.currentTimeMillis();
-                //System.out.println("finded probable time + " + (l1 - l2));
                 rnd.nextBytes(bytes);
                 if (bytes[bytes.length - 1] % 2 == 0) {
                     bytes[bytes.length - 1] = (byte)((int) bytes[bytes.length - 1] + 1);
@@ -48,9 +44,7 @@ public class BigKey {
                 for (int i = 0; i < bytes.length; i++) {
                     bytes[i] = (byte) (bytes[i] & 0xFF);
                 }
-                //bytes[0] = (byte) ((int) bytes[0] | 1 << 8);
                 number = new BigInteger(bytes).abs();
-                l2 = System.currentTimeMillis();
             } while (!MathUtils.isProbablyPrime(number, bitsCount + 1));
             bytes = number.toByteArray();
         } else {

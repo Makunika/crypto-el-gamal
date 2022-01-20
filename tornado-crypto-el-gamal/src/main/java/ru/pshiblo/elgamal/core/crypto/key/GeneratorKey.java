@@ -9,6 +9,7 @@ import java.math.BigInteger;
  * @author Maxim Pshiblo
  */
 public class GeneratorKey {
+
     public SecretKey generateNewKey(int bitsCount) {
         if (bitsCount < 32) {
             throw new IllegalArgumentException("bitsCount >= 32!");

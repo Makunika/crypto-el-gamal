@@ -14,8 +14,7 @@ import java.util.Random;
 public class MathUtils {
 
     /**
-     * тест Миллера — Рабина на простоту числа
-     * производится k раундов проверки числа number на простоту
+     * тест Ферма на простоту числа
      */
     public static boolean isProbablyPrime(BigInteger number, int k) {
         if (number.compareTo(BigInteger.ZERO) < 0) {
@@ -194,9 +193,6 @@ public class MathUtils {
         Random rnd = new Random();
         BigInteger result = new BigInteger(Math.max(min.bitLength(), max.bitLength()), rnd);
         result = result.mod(max.subtract(min).add(BigInteger.ONE)).add(min);
-//        System.out.println("a = " + result.toString());
-//        System.out.println("min = " + min.toString());
-//        System.out.println("max = " + max.toString());
         return result;
     }
 }

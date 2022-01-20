@@ -23,6 +23,9 @@ public class CryptorServiceImpl implements CryptorService {
         if (openKey == null) {
             throw new IllegalArgumentException("openKey is null");
         }
+        if (str == null || str.isEmpty()) {
+            throw new IllegalArgumentException("str is null or empty");
+        }
         if (byteBlock >= openKey.getP().getByteSize()) {
             throw new IllegalArgumentException("byteBlock (" + byteBlock + ") > p byteSize (" + openKey.getP().getByteSize() + ")");
         }

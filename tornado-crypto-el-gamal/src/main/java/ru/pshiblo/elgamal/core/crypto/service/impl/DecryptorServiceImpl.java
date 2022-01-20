@@ -18,6 +18,12 @@ public class DecryptorServiceImpl implements DecryptorService {
 
     @Override
     public String decryption(GamalCryptoResult result, SecretKey secretKey) {
+        if (result == null) {
+            throw new IllegalArgumentException("result is null");
+        }
+        if (secretKey == null) {
+            throw new IllegalArgumentException("secretKey is null");
+        }
         int bytesSize = result.getBytes();
         String[] numbersA = result.getA().split(",");
         String[] numbersB = result.getB().split(",");
