@@ -75,7 +75,7 @@ class RecipientView : View("Получатель") {
                                         val allText = fileSaved.readText()
                                         val listElements = allText.split("\n")
                                         if (listElements.size != 4) {
-                                            alert(Alert.AlertType.ERROR, "Ошибка", "Публичный ключ не валидный!")
+                                            alert(Alert.AlertType.ERROR, "Ошибка", "Закрытый ключ не валидный!")
                                             return@action
                                         }
                                         secretKey = SecretKey(
@@ -170,6 +170,10 @@ class RecipientView : View("Получатель") {
                     }
                     button("Расшифровать") {
                         action {
+                            if (msgProperty.value.isNullOrEmpty()) {
+                                alert(Alert.AlertType.ERROR, "Ошибка", "Нет текста для расшифрования!")
+                                return@action
+                            }
                             val gson = Gson()
                             val gamalCryptoResult = gson.fromJson(msgProperty.value, GamalCryptoResult::class.java)
                             decryptProperty.value = decryptorService.decryption(gamalCryptoResult, secretKey)

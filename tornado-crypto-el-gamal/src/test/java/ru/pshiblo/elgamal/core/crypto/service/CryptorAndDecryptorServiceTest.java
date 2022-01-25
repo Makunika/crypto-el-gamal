@@ -7,6 +7,7 @@ import ru.pshiblo.elgamal.core.crypto.service.impl.CryptorServiceImpl;
 import ru.pshiblo.elgamal.core.crypto.service.impl.DecryptorServiceImpl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CryptorAndDecryptorServiceTest {
@@ -30,7 +31,13 @@ class CryptorAndDecryptorServiceTest {
                 service.encryption(toEncryption, null, 3));
 
         assertThrows(IllegalArgumentException.class, () ->
+                service.encryption("", secretKey.toOpenKey(), 3));
+
+        assertThrows(IllegalArgumentException.class, () ->
                 service.encryption(toEncryption, secretKey.toOpenKey(), secretKey.getP().getByteSize()));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                service.encryption(toEncryption, secretKey.toOpenKey(), 1));
     }
 
     @Test
@@ -53,5 +60,21 @@ class CryptorAndDecryptorServiceTest {
         String result = decryptorService.decryption(cryptoResult, secretKey);
 
         assertEquals(msg, result);
+
+        GamalCryptoResult result1 = cryptorService.encryption(msg, secretKey.toOpenKey(), 2);
+        GamalCryptoResult result2 = cryptorService.encryption(msg, secretKey.toOpenKey(), 2);
+
+        assertNotEquals(result1.getA(), result2.getA());
+        assertNotEquals(result1.getB(), result2.getB());
+
+
+        SecretKey secretKey2 = generatePreSecretKey();
+
+        GamalCryptoResult result3 = cryptorService.encryption(msg, secretKey.toOpenKey(), 2);
+
+        String decryption1 = decryptorService.decryption(result3, secretKey);
+        String decryption2 = decryptorService.decryption(result3, secretKey2);
+
+        assertNotEquals(decryption1, decryption2);
     }
 }

@@ -2,6 +2,8 @@ package ru.pshiblo.elgamal.core.crypto.key;
 
 import org.junit.jupiter.api.Test;
 
+import java.security.KeyPairGenerator;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class GeneratorKeyTest {
@@ -11,9 +13,9 @@ class GeneratorKeyTest {
         GeneratorKey generatorKey = new GeneratorKey();
         SecretKey secretKey = generatorKey.generateNewKey(1024);
         assertEquals(secretKey.getP().getBitsSize(), 1024);
-        assertEquals(secretKey.getP().toBigInteger().bitLength(), 1023);
 
         assertThrows(IllegalArgumentException.class, () -> generatorKey.generateNewKey(-20));
-        assertThrows(IllegalArgumentException.class, () -> generatorKey.generateNewKey(1));
+        assertThrows(IllegalArgumentException.class, () -> generatorKey.generateNewKey(31));
+
     }
 }

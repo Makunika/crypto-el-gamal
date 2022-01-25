@@ -73,12 +73,36 @@ class SenderView : View("Отправитель") {
                             vgrow = Priority.ALWAYS
                         }
                     }
-                    field("Размер блока шифрования в битах (>16)") {
+                    field("Размер блока шифрования в битах (>1)") {
                         textfield(bitsProperty)
                     }
                     button("Зашифровать") {
                         action {
+                            if (openKeyModelModel.pProperty.value.isNullOrEmpty()) {
+                                alert(Alert.AlertType.ERROR, "Ошибка", "Компонент P не может быть пустым")
+                                return@action
+                            }
+                            if (openKeyModelModel.gProperty.value.isNullOrEmpty()) {
+                                alert(Alert.AlertType.ERROR, "Ошибка", "Компонент G не может быть пустым")
+                                return@action
+                            }
+                            if (openKeyModelModel.yProperty.value.isNullOrEmpty()) {
+                                alert(Alert.AlertType.ERROR, "Ошибка", "Компонент Y не может быть пустым")
+                                return@action
+                            }
+                            if (msgProperty.value.isNullOrEmpty()) {
+                                alert(Alert.AlertType.ERROR, "Ошибка", "Нет текста для зашифрования!")
+                                return@action
+                            }
+                            if (bitsProperty.value <= 1) {
+                                alert(Alert.AlertType.ERROR, "Ошибка", "Размер блока в битах должно быть больше 1")
+                                return@action
+                            }
                             val openKey = OpenKey(BigKey(openKeyModelModel.pProperty.value), BigKey(openKeyModelModel.gProperty.value), BigKey(openKeyModelModel.yProperty.value))
+                            if (openKey.p.bitsSize <= bitsProperty.value) {
+                                alert(Alert.AlertType.ERROR, "Ошибка", "Размер блока для шифрования должен быть меньше, чем размер ключа (${openKey.p.bitsSize})")
+                                return@action
+                            }
                             val gson = Gson()
                             val gamalCryptoResult = cryptorService.encryption(msgProperty.value, openKey, bitsProperty.value / 8)
                             val jsonGamalResult = gson.toJson(gamalCryptoResult)

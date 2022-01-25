@@ -29,6 +29,12 @@ public class CryptorServiceImpl implements CryptorService {
         if (byteBlock >= openKey.getP().getByteSize()) {
             throw new IllegalArgumentException("byteBlock (" + byteBlock + ") > p byteSize (" + openKey.getP().getByteSize() + ")");
         }
+        if (byteBlock < MIN_BLOCK) {
+            throw new IllegalArgumentException("minimum byte block is 2");
+        }
+        if (openKey.getP().getByteSize() < 4) {
+            throw new IllegalArgumentException("p size minimum 32 required");
+        }
 
         int[] chars = str.chars().toArray();
         List<String> resultA = new ArrayList<>();
@@ -36,10 +42,7 @@ public class CryptorServiceImpl implements CryptorService {
 
         for (int i = 0; i < chars.length; i+=byteBlock/MIN_BLOCK) {
             ByteBuffer byteBuffer = ByteBuffer.allocate(Math.min(chars.length * MIN_BLOCK, byteBlock));
-            for (int j = i; j < i+byteBlock/MIN_BLOCK; j++) {
-                if (j >= chars.length)
-                    break;
-                else
+            for (int j = i; j < Math.min(chars.length, i+byteBlock / MIN_BLOCK); j++) {
                     byteBuffer.putChar((char) chars[j]);
             }
             byte[] array = byteBuffer.array();
